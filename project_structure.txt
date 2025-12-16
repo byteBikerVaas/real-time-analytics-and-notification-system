@@ -1,0 +1,18 @@
+.
+├── common
+│   ├── src
+│   │   └── main
+│   │       └── java
+│   │           └── com
+│   │               └── example
+│   │                   └── realtime
+│   │                       └── common
+│   │                           ├── dto
+│   │                           │   ├── AggregateDTO.java
+│   │                           │   └── EventDTO.java
+│   │                           └── Constants.java
+│   └── pom.xml
+├── pom.xml
+└── project_structure.txt
+
+10 directories, 6 files
