@@ -3,7 +3,9 @@ package com.example.realtime.processor.service;
 import com.example.realtime.common.dto.EventDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -15,9 +17,14 @@ public class KafkaConsumerService {
     // 1. The Tool: Redis Client for Strings
     private final StringRedisTemplate redisTemplate;
 
+    // 2. The Topic to publish to (injected from RedisConfig)
+    private final ChannelTopic topic;
+
     // Constructor Injection
-    public KafkaConsumerService(StringRedisTemplate redisTemplate) {
+    @Autowired
+    public KafkaConsumerService(StringRedisTemplate redisTemplate, ChannelTopic topic) {
         this.redisTemplate = redisTemplate;
+        this.topic = topic;
     }
 
     @KafkaListener(topics = "${app.kafka.topic}", groupId = "realtime-analytics-group")
@@ -25,15 +32,18 @@ public class KafkaConsumerService {
         logger.info("Consumed event: userId={}, type={}", event.getUserId(), event.getEventType());
 
         // 2. Define the Key
-        // Pattern: "stats:USER_ID:EVENT_TYPE" -> e.g., "stats:danish_j:CLICK"
         String key = "stats:" + event.getUserId() + ":" + event.getEventType();
 
         // 3. The Logic: Increment counter in Redis
-        // opsForValue() allows us to work with simple values (Strings/Numbers)
         redisTemplate.opsForValue().increment(key);
 
         // Optional: Print the new count to verify it works
         String newCount = redisTemplate.opsForValue().get(key);
         logger.info("Updated Redis Key: {} -> Count: {}", key, newCount);
+
+        // CHANGE: Publish to Redis pub/sub channel so Gateway instances can receive it
+        String messageToSend = event.toString(); // TODO: replace with JSON serialization if needed
+        redisTemplate.convertAndSend(topic.getTopic(), messageToSend);
+        logger.info("Published event to Redis topic {}", topic.getTopic());
     }
 }
