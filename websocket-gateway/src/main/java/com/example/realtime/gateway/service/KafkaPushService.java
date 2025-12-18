@@ -1,6 +1,6 @@
 package com.example.realtime.gateway.service;
 
-import com.example.realtime.common.dto.EventDTO;
+import com.example.realtime.common.dto.AggregateDTO;
 import com.example.realtime.gateway.handler.EventWebSocketHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -21,18 +21,18 @@ public class KafkaPushService {
         this.objectMapper = objectMapper;
     }
 
-    @KafkaListener(topics = "${app.kafka.topic}", groupId = "websocket-push-group")
-    public void consumeEvents(EventDTO event) {
+    @KafkaListener(topics = "events-aggregated", groupId = "websocket-push-group")
+    public void consumeAggregates(AggregateDTO aggregate) {
         try {
-            // Convert the event to JSON
-            String jsonMessage = objectMapper.writeValueAsString(event);
-            
-            logger.info("Pushing event to frontend: {}", jsonMessage);
-            
-            // Broadcast to all connected users
-            webSocketHandler.broadcast(jsonMessage);
+            String jsonMessage = objectMapper.writeValueAsString(aggregate);
+            String userId = aggregate.getMetricId();
+
+            logger.debug("Received aggregate for user {}: {}", userId, jsonMessage);
+
+            // Async send to the specific user
+            webSocketHandler.sendToUserAsync(userId, jsonMessage);
         } catch (Exception e) {
-            logger.error("Error broadcasting event", e);
+            logger.error("Error processing aggregate message", e);
         }
     }
 }

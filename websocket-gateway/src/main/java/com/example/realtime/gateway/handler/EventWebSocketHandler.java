@@ -11,6 +11,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class EventWebSocketHandler extends TextWebSocketHandler {
 
@@ -18,6 +21,9 @@ public class EventWebSocketHandler extends TextWebSocketHandler {
 
     // CHANGE 1: Map of userId -> WebSocketSession
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
+
+    // Virtual thread executor for asynchronous send operations
+    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
@@ -54,6 +60,30 @@ public class EventWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    // Asynchronous, virtual-thread backed send
+    public void sendToUserAsync(String userId, String message) {
+        WebSocketSession session = sessions.get(userId);
+        if (session == null) {
+            logger.warn("No session found for user {} when attempting async send", userId);
+            return;
+        }
+
+        executor.submit(() -> {
+            if (!session.isOpen()) {
+                logger.warn("Session for user {} is closed, dropping message", userId);
+                return;
+            }
+
+            synchronized (session) {
+                try {
+                    session.sendMessage(new TextMessage(message));
+                } catch (IOException e) {
+                    logger.warn("Dropping message for user {} due to IOException: {}", userId, e.getMessage());
+                }
+            }
+        });
+    }
+
     // Keep a broadcast method for backwards compatibility
     public void broadcast(String message) {
         for (WebSocketSession session : sessions.values()) {
@@ -77,5 +107,16 @@ public class EventWebSocketHandler extends TextWebSocketHandler {
             }
         }
         return null;
+    }
+
+    // Shutdown executor when handler is GC'd - best-effort
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            executor.shutdown();
+            executor.awaitTermination(5, TimeUnit.SECONDS);
+        } finally {
+            super.finalize();
+        }
     }
 }
