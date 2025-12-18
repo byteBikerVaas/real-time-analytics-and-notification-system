@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @RestController
 @RequestMapping("/events")
@@ -19,10 +20,11 @@ public class EventController {
 
     private final KafkaProducerService producerService;
 
+    @Autowired
     public EventController(KafkaProducerService producerService) {
         this.producerService = producerService;
     }
-
+    
     @PostMapping
     public ResponseEntity<Void> postEvent(@RequestBody EventDTO event) {
         // 2. Log the receipt (good for debugging)

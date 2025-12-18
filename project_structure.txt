@@ -12,7 +12,61 @@
 │   │                           │   └── EventDTO.java
 │   │                           └── Constants.java
 │   └── pom.xml
+├── docs
+│   └── HLD.md
+├── ingest-service
+│   ├── src
+│   │   └── main
+│   │       ├── java
+│   │       │   └── com
+│   │       │       └── example
+│   │       │           └── realtime
+│   │       │               └── ingest
+│   │       │                   ├── controller
+│   │       │                   │   └── EventController.java
+│   │       │                   ├── service
+│   │       │                   │   └── KafkaProducerService.java
+│   │       │                   └── IngestServiceApplication.java
+│   │       └── resources
+│   │           └── application.yml
+│   └── pom.xml
+├── stream-processor
+│   ├── src
+│   │   └── main
+│   │       ├── java
+│   │       │   └── com
+│   │       │       └── example
+│   │       │           └── realtime
+│   │       │               └── processor
+│   │       │                   ├── service
+│   │       │                   │   └── KafkaConsumerService.java
+│   │       │                   └── StreamProcessorApplication.java
+│   │       └── resources
+│   │           └── application.yml
+│   └── pom.xml
+├── websocket-gateway
+│   ├── src
+│   │   └── main
+│   │       ├── java
+│   │       │   └── com
+│   │       │       └── example
+│   │       │           └── realtime
+│   │       │               └── gateway
+│   │       │                   ├── config
+│   │       │                   │   └── WebSocketConfig.java
+│   │       │                   ├── handler
+│   │       │                   │   └── EventWebSocketHandler.java
+│   │       │                   ├── service
+│   │       │                   │   └── KafkaPushService.java
+│   │       │                   └── WebsocketGatewayApplication.java
+│   │       └── resources
+│   │           └── application.yml
+│   └── pom.xml
+├── docker-compose.yml
 ├── pom.xml
-└── project_structure.txt
+├── project_structure.txt
+├── README.md
+├── test-client.html
+└── Troubleshooting.md
 
-10 directories, 6 files
+44 directories, 26 files

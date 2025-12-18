@@ -1,0 +1,693 @@
+
+
+==================================================================
+FILE PATH: ./pom.xml
+==================================================================
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example.realtime</groupId>
+    <artifactId>realtime-system</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>common</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+        <spring.boot.version>3.2.0</spring.boot.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+</project>
+
+
+==================================================================
+FILE PATH: ./common/pom.xml
+==================================================================
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.example.realtime</groupId>
+        <artifactId>realtime-system</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>common</artifactId>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <version>3.0.2</version>
+        </dependency>
+    </dependencies>
+</project>
+
+
+==================================================================
+FILE PATH: ./common/src/main/java/com/example/realtime/common/dto/AggregateDTO.java
+==================================================================
+package com.example.realtime.common.dto;
+
+import java.time.Instant;
+
+/**
+ * DTO for aggregated metrics to be shared between services.
+ */
+public class AggregateDTO {
+    private String metricId;
+    private Instant windowStart;
+    private Instant windowEnd;
+    private long count;
+    private double sum;
+    private double max;
+
+    public AggregateDTO() {}
+
+    // Getters and setters
+    public String getMetricId() { return metricId; }
+    public void setMetricId(String metricId) { this.metricId = metricId; }
+    public Instant getWindowStart() { return windowStart; }
+    public void setWindowStart(Instant windowStart) { this.windowStart = windowStart; }
+    public Instant getWindowEnd() { return windowEnd; }
+    public void setWindowEnd(Instant windowEnd) { this.windowEnd = windowEnd; }
+    public long getCount() { return count; }
+    public void setCount(long count) { this.count = count; }
+    public double getSum() { return sum; }
+    public void setSum(double sum) { this.sum = sum; }
+    public double getMax() { return max; }
+    public void setMax(double max) { this.max = max; }
+}
+
+
+==================================================================
+FILE PATH: ./common/src/main/java/com/example/realtime/common/dto/EventDTO.java
+==================================================================
+package com.example.realtime.common.dto;
+
+import java.time.Instant;
+
+/**
+ * Lightweight DTO representing an incoming event.
+ * This class is part of the shared `common` module used by all services.
+ */
+public class EventDTO {
+    private String eventType;
+    private String userId;
+    private Instant timestamp;
+    private Object metadata;
+
+    public EventDTO() {}
+
+    public EventDTO(String eventType, String userId, Instant timestamp, Object metadata) {
+        this.eventType = eventType;
+        this.userId = userId;
+        this.timestamp = timestamp;
+        this.metadata = metadata;
+    }
+
+    // Getters and setters
+    public String getEventType() { return eventType; }
+    public void setEventType(String eventType) { this.eventType = eventType; }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
+    public Instant getTimestamp() { return timestamp; }
+    public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+    public Object getMetadata() { return metadata; }
+    public void setMetadata(Object metadata) { this.metadata = metadata; }
+}
+
+
+==================================================================
+FILE PATH: ./common/src/main/java/com/example/realtime/common/Constants.java
+==================================================================
+package com.example.realtime.common;
+
+/** Shared constants used across modules. */
+public final class Constants {
+    private Constants() {}
+
+    public static final String KAFKA_TOPIC_EVENTS = "events";
+    public static final int KAFKA_PARTITIONS = 3;
+}
+
+
+==================================================================
+FILE PATH: ./websocket-gateway/pom.xml
+==================================================================
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.example.realtime</groupId>
+        <artifactId>realtime-system</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>websocket-gateway</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.example.realtime</groupId>
+            <artifactId>common</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+
+==================================================================
+FILE PATH: ./websocket-gateway/src/main/resources/application.yml
+==================================================================
+server:
+  port: 8082
+
+spring:
+  application:
+    name: websocket-gateway
+  kafka:
+    consumer:
+      bootstrap-servers: localhost:9092
+      group-id: websocket-push-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # ErrorHandlingDeserializer is great for preventing infinite loops on bad data
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        # These properties specifically configure the JsonDeserializer
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.example.realtime.common.dto.EventDTO
+        # Note: If your app fails to parse JSON, you might need to explicitly define the delegate:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+
+app:
+  kafka:
+    topic: events
+
+logging:
+  level:
+    root: INFO
+
+==================================================================
+FILE PATH: ./websocket-gateway/src/main/java/com/example/realtime/gateway/handler/EventWebSocketHandler.java
+==================================================================
+package com.example.realtime.gateway.handler;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
+
+import java.io.IOException;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class EventWebSocketHandler extends TextWebSocketHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(EventWebSocketHandler.class);
+    // Thread-safe list of sessions
+    private final CopyOnWriteArrayList<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+        sessions.add(session);
+        logger.info("New WebSocket connection: {}", session.getId());
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        sessions.remove(session);
+        logger.info("WebSocket connection closed: {}", session.getId());
+    }
+
+    // The method used by KafkaPushService
+    public void broadcast(String message) {
+        for (WebSocketSession session : sessions) {
+            if (session.isOpen()) {
+                try {
+                    session.sendMessage(new TextMessage(message));
+                } catch (IOException e) {
+                    logger.error("Error sending message to session {}", session.getId(), e);
+                }
+            }
+        }
+    }
+}
+
+==================================================================
+FILE PATH: ./websocket-gateway/src/main/java/com/example/realtime/gateway/config/WebSocketConfig.java
+==================================================================
+package com.example.realtime.gateway.config;
+
+import com.example.realtime.gateway.handler.EventWebSocketHandler;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+
+@Configuration
+@EnableWebSocket
+public class WebSocketConfig implements WebSocketConfigurer {
+
+    @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(eventWebSocketHandler(), "/ws/events")
+                .setAllowedOrigins("*"); // Important for testing!
+    }
+
+    @Bean
+    public EventWebSocketHandler eventWebSocketHandler() {
+        return new EventWebSocketHandler();
+    }
+}
+
+==================================================================
+FILE PATH: ./websocket-gateway/src/main/java/com/example/realtime/gateway/WebsocketGatewayApplication.java
+==================================================================
+package com.example.realtime.gateway;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class WebsocketGatewayApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(WebsocketGatewayApplication.class, args);
+    }
+}
+
+
+==================================================================
+FILE PATH: ./websocket-gateway/src/main/java/com/example/realtime/gateway/service/KafkaPushService.java
+==================================================================
+package com.example.realtime.gateway.service;
+
+import com.example.realtime.common.dto.EventDTO;
+import com.example.realtime.gateway.handler.EventWebSocketHandler;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Service;
+
+@Service
+public class KafkaPushService {
+
+    private static final Logger logger = LoggerFactory.getLogger(KafkaPushService.class);
+
+    private final EventWebSocketHandler webSocketHandler;
+    private final ObjectMapper objectMapper;
+
+    public KafkaPushService(EventWebSocketHandler webSocketHandler, ObjectMapper objectMapper) {
+        this.webSocketHandler = webSocketHandler;
+        this.objectMapper = objectMapper;
+    }
+
+    @KafkaListener(topics = "${app.kafka.topic}", groupId = "websocket-push-group")
+    public void consumeEvents(EventDTO event) {
+        try {
+            // Convert the event to JSON
+            String jsonMessage = objectMapper.writeValueAsString(event);
+            
+            logger.info("Pushing event to frontend: {}", jsonMessage);
+            
+            // Broadcast to all connected users
+            webSocketHandler.broadcast(jsonMessage);
+        } catch (Exception e) {
+            logger.error("Error broadcasting event", e);
+        }
+    }
+}
+
+==================================================================
+FILE PATH: ./docker-compose.yml
+==================================================================
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+      
+  redis:
+      image: redis:7.0
+      ports:
+        - "6379:6379"
+
+==================================================================
+FILE PATH: ./ingest-service/pom.xml
+==================================================================
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.example.realtime</groupId>
+        <artifactId>realtime-system</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>ingest-service</artifactId>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.example.realtime</groupId>
+            <artifactId>common</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+
+==================================================================
+FILE PATH: ./ingest-service/src/main/resources/application.yml
+==================================================================
+server:
+  port: 8080
+spring:
+  application:
+    name: ingest-service
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+
+
+
+# TODO: Replace with docker-compose host/port when running locally
+app:
+  kafka:
+    topic: events
+
+logging:
+  level:
+    root: INFO
+
+
+==================================================================
+FILE PATH: ./ingest-service/src/main/java/com/example/realtime/ingest/IngestServiceApplication.java
+==================================================================
+package com.example.realtime.ingest;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class IngestServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(IngestServiceApplication.class, args);
+    }
+}
+
+
+==================================================================
+FILE PATH: ./ingest-service/src/main/java/com/example/realtime/ingest/controller/EventController.java
+==================================================================
+package com.example.realtime.ingest.controller;
+
+import com.example.realtime.common.dto.EventDTO;
+import com.example.realtime.ingest.service.KafkaProducerService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
+
+@RestController
+@RequestMapping("/events")
+public class EventController {
+
+    // 1. Create the Logger
+    private static final Logger logger = LoggerFactory.getLogger(EventController.class);
+
+    private final KafkaProducerService producerService;
+
+    @Autowired
+    public EventController(KafkaProducerService producerService) {
+        this.producerService = producerService;
+    }
+    
+    @PostMapping
+    public ResponseEntity<Void> postEvent(@RequestBody EventDTO event) {
+        // 2. Log the receipt (good for debugging)
+        logger.info("Received event request: userId={}, type={}", event.getUserId(), event.getEventType());
+
+        // 3. Send to Kafka
+        producerService.sendEvent(event);
+
+        // 4. Return "202 Accepted"
+        return ResponseEntity.accepted().build();
+    }
+}
+
+==================================================================
+FILE PATH: ./ingest-service/src/main/java/com/example/realtime/ingest/service/KafkaProducerService.java
+==================================================================
+package com.example.realtime.ingest.service;
+
+import com.example.realtime.common.dto.EventDTO;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+
+@Service
+public class KafkaProducerService {
+
+    // 1. The Tool: KafkaTemplate
+    // <String, EventDTO> means: Key is a String, Value is our Event object.
+    private final KafkaTemplate<String, EventDTO> kafkaTemplate;
+
+    // 2. The Address: Topic Name
+    // We will load this from application.yml
+    private final String topicName;
+
+    // Constructor Injection: Spring provides the tools here
+    public KafkaProducerService(KafkaTemplate<String, EventDTO> kafkaTemplate,
+                                @Value("${app.kafka.topic}") String topicName) {
+        this.kafkaTemplate = kafkaTemplate;
+        this.topicName = topicName;
+    }
+
+    public void sendEvent(EventDTO event) {
+        // Logic: Send the event to the topic.
+        // We use the userId as the "Key". This ensures all events for the same user
+        // go to the same partition (Order Guarantee).
+        kafkaTemplate.send(topicName, event.getUserId(), event);
+        
+        // Simple logging to prove it worked
+        System.out.println("Message sent to Kafka topic: " + topicName);
+    }
+}
+
+==================================================================
+FILE PATH: ./stream-processor/pom.xml
+==================================================================
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.example.realtime</groupId>
+        <artifactId>realtime-system</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>stream-processor</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.example.realtime</groupId>
+            <artifactId>common</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+
+==================================================================
+FILE PATH: ./stream-processor/src/main/resources/application.yml
+==================================================================
+server:
+  port: 8081
+
+spring:
+  application:
+    name: stream-processor
+  kafka:
+    consumer:
+      bootstrap-servers: localhost:9092
+      group-id: realtime-analytics-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.example.realtime.common.dto.EventDTO
+app:
+  kafka:
+    topic: events
+    
+logging:
+  level:
+    root: INFO
+
+==================================================================
+FILE PATH: ./stream-processor/src/main/java/com/example/realtime/processor/StreamProcessorApplication.java
+==================================================================
+package com.example.realtime.processor;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class StreamProcessorApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(StreamProcessorApplication.class, args);
+    }
+}
+
+
+==================================================================
+FILE PATH: ./stream-processor/src/main/java/com/example/realtime/processor/service/KafkaConsumerService.java
+==================================================================
+package com.example.realtime.processor.service;
+
+import com.example.realtime.common.dto.EventDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Service;
+
+@Service
+public class KafkaConsumerService {
+
+    private static final Logger logger = LoggerFactory.getLogger(KafkaConsumerService.class);
+
+    // 1. The Tool: Redis Client for Strings
+    private final StringRedisTemplate redisTemplate;
+
+    // Constructor Injection
+    public KafkaConsumerService(StringRedisTemplate redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
+
+    @KafkaListener(topics = "${app.kafka.topic}", groupId = "realtime-analytics-group")
+    public void consumeEvents(EventDTO event) {
+        logger.info("Consumed event: userId={}, type={}", event.getUserId(), event.getEventType());
+
+        // 2. Define the Key
+        // Pattern: "stats:USER_ID:EVENT_TYPE" -> e.g., "stats:danish_j:CLICK"
+        String key = "stats:" + event.getUserId() + ":" + event.getEventType();
+
+        // 3. The Logic: Increment counter in Redis
+        // opsForValue() allows us to work with simple values (Strings/Numbers)
+        redisTemplate.opsForValue().increment(key);
+
+        // Optional: Print the new count to verify it works
+        String newCount = redisTemplate.opsForValue().get(key);
+        logger.info("Updated Redis Key: {} -> Count: {}", key, newCount);
+    }
+}

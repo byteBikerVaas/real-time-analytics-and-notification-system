@@ -1,23 +1,27 @@
 server:
-  port: 8081
+  port: 8082
 
 spring:
   application:
-    name: stream-processor
+    name: websocket-gateway
   kafka:
     consumer:
       bootstrap-servers: localhost:9092
-      group-id: realtime-analytics-group
+      group-id: websocket-push-group
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # ErrorHandlingDeserializer is great for preventing infinite loops on bad data
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
-        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        # These properties specifically configure the JsonDeserializer
         spring.json.trusted.packages: "*"
         spring.json.value.default.type: com.example.realtime.common.dto.EventDTO
+        # Note: If your app fails to parse JSON, you might need to explicitly define the delegate:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+
 app:
   kafka:
     topic: events
-    
+
 logging:
   level:
     root: INFO
